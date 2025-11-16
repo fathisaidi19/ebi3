@@ -24,21 +24,14 @@ DEBUG = env("DEBUG")
 
 # ⚠️ CORRECTION CRITIQUE (ALLOWED_HOSTS)
 # Liste des hôtes autorisés.
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '::1']
-
-# Configuration spécifique pour Render en mode production (DEBUG=False)
-if not DEBUG:
-    # Récupère le nom d'hôte externe fourni par Render via la variable d'environnement
-    RENDER_HOST = env.str("RENDER_EXTERNAL_HOSTNAME", default="")
-
-    # Ajout du domaine Render et du wildcard '.onrender.com'
-    if RENDER_HOST:
-        ALLOWED_HOSTS.append(RENDER_HOST)
-
-    # Ajoute le domaine Render pour tous les services sous .onrender.com
-    ALLOWED_HOSTS.append('.onrender.com')
-
-# Application definition
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '::1',
+    # Ajouter le domaine Render et le wildcard directement ici pour éviter toute erreur de logique
+    'ebi3-jii8.onrender.com',  # <--- Ajout en dur de votre domaine
+    '.onrender.com'            # <--- Wildcard pour tous les sous-domaines Render
+]# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
