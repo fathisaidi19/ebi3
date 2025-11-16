@@ -24,15 +24,24 @@ DEBUG = env("DEBUG")
 
 # ⚠️ CORRECTION CRITIQUE (ALLOWED_HOSTS)
 # Liste des hôtes autorisés.
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    '::1',
-    # Ajouter le domaine Render et le wildcard directement ici pour éviter toute erreur de logique
-    'ebi3-jii8.onrender.com',  # <--- Ajout en dur de votre domaine
-    '.onrender.com'            # <--- Wildcard pour tous les sous-domaines Render
-]# Application definition
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '::1']
 
+# Configuration spécifique pour Render en mode production (DEBUG=False)
+if not DEBUG:
+    # RENDER_EXTERNAL_HOSTNAME est défini par Render
+    RENDER_HOST = env.str("RENDER_EXTERNAL_HOSTNAME", default="")
+
+    # 1. Ajout de l'hôte récupéré (meilleure pratique)
+    if RENDER_HOST:
+        ALLOWED_HOSTS.append(RENDER_HOST)
+
+    # 2. Ajout du domaine de base de Render (wildcard)
+    ALLOWED_HOSTS.append('.onrender.com')
+
+    # 3. Ajout explicite de votre domaine pour garantir la correspondance
+    # Ceci est la ligne la plus importante pour corriger le 400 actuel !
+    ALLOWED_HOSTS.append('ebi3-jii8.onrender.com')
+    
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
