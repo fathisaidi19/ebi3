@@ -21,11 +21,18 @@ if os.path.exists(BASE_DIR / ".env"):
 # --- PARAMÈTRES DE BASE IMPORTÉS DE .env ---
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = [
-    '127.0.0.1', # Local
-    'localhost', # Local
-    'ebi3-jii8.onrender.com' # <--- VOTRE DOMAINE RENDER
-]
+
+# ⚠️ CORRECTION N°1 : ALLOWED_HOSTS
+# On ne met pas ALLOWED_HOSTS en dur ici. On le gère via la variable d'environnement ou la logique ci-dessous.
+# Si DEBUG=True, on permet l'accès local.
+if DEBUG:
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '::1', '.render.com']
+else:
+    # En production, on utilise la logique Render recommandée.
+    # L'adresse Render 'ebi3-jii8.onrender.com' sera automatiquement acceptée
+    # via la configuration des ALLOWED_HOSTS.
+    ALLOWED_HOSTS = ['ebi3-jii8.onrender.com', '.render.com']
+
 
 # Application definition
 
@@ -58,7 +65,7 @@ ROOT_URLCONF = 'ebi3.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'], # Si vous avez un dossier 'templates' à la racine de votre projet
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -115,6 +122,13 @@ USE_TZ = True
 STATIC_URL = env("STATIC_URL")
 STATIC_ROOT = BASE_DIR / env("STATIC_ROOT")
 
+# ⚠️ CORRECTION N°2 : Ajout de STATICFILES_DIRS
+# Permet à Django de trouver les fichiers statiques qui ne sont pas dans une application spécifique (ex: un dossier 'static' à la racine du projet).
+# Si vous n'avez pas de dossier 'static' à la racine, vous pouvez laisser la liste vide.
+STATICFILES_DIRS = []
+# Exemple si vous avez un dossier 'static' à la racine :
+# STATICFILES_DIRS = [BASE_DIR / 'static']
+
 # Fichiers médias (images d'annonces, etc.)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -124,7 +138,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuration pour Render: s'assurer que ALLOWED_HOSTS est correct si DEBUG=False
-if not DEBUG:
-    # Render définit son propre HOST. On autorise l'accès à tous les sous-domaines Render
-    ALLOWED_HOSTS = ['.render.com']
+# Configuration WhiteNoise pour la compression des statiques (optionnel, mais recommandé)
+# Desactivez si vous utilisez un CDN
+# WHITENOISE_MANIFEST_STRICT = False
+# WHITENOISE_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
