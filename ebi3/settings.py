@@ -22,17 +22,21 @@ if os.path.exists(BASE_DIR / ".env"):
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 
-# ⚠️ CORRECTION N°1 : ALLOWED_HOSTS
-# On ne met pas ALLOWED_HOSTS en dur ici. On le gère via la variable d'environnement ou la logique ci-dessous.
-# Si DEBUG=True, on permet l'accès local.
-if DEBUG:
-    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '::1', '.render.com']
-else:
-    # En production, on utilise la logique Render recommandée.
-    # L'adresse Render 'ebi3-jii8.onrender.com' sera automatiquement acceptée
-    # via la configuration des ALLOWED_HOSTS.
-    ALLOWED_HOSTS = ['ebi3-jii8.onrender.com', '.render.com']
+# ⚠️ CORRECTION CRITIQUE (ALLOWED_HOSTS)
+# Liste des hôtes autorisés.
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '::1']
 
+# Configuration spécifique pour Render en mode production (DEBUG=False)
+if not DEBUG:
+    # Récupère le nom d'hôte externe fourni par Render via la variable d'environnement
+    RENDER_HOST = env.str("RENDER_EXTERNAL_HOSTNAME", default="")
+
+    # Ajout du domaine Render et du wildcard '.onrender.com'
+    if RENDER_HOST:
+        ALLOWED_HOSTS.append(RENDER_HOST)
+
+    # Ajoute le domaine Render pour tous les services sous .onrender.com
+    ALLOWED_HOSTS.append('.onrender.com')
 
 # Application definition
 
@@ -45,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Vos applications seront ajoutées ici
     'annonces',
+    'whitenoise.runserver_nostatic',  # Recommandé pour le développement local si vous utilisez whitenoise
 
 ]
 
@@ -65,7 +70,7 @@ ROOT_URLCONF = 'ebi3.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'], # Si vous avez un dossier 'templates' à la racine de votre projet
+        'DIRS': [BASE_DIR / 'templates'],  # Si vous avez un dossier 'templates' à la racine de votre projet
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -80,12 +85,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ebi3.wsgi.application'
 
-
 # --- CONFIGURATION DE LA BASE DE DONNÉES (DB) ---
 DATABASES = {
     'default': env.db()
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -105,7 +108,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -117,17 +119,18 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # --- CONFIGURATION DES FICHIERS STATIQUES ---
 STATIC_URL = env("STATIC_URL")
 STATIC_ROOT = BASE_DIR / env("STATIC_ROOT")
 
-# ⚠️ CORRECTION N°2 : Ajout de STATICFILES_DIRS
-# Permet à Django de trouver les fichiers statiques qui ne sont pas dans une application spécifique (ex: un dossier 'static' à la racine du projet).
-# Si vous n'avez pas de dossier 'static' à la racine, vous pouvez laisser la liste vide.
+# ⚠️ CORRECTION N°2 : STATICFILES_DIRS
+# Cette ligne est cruciale pour que Django sache où chercher les fichiers statiques
+# non associés à une application (ex: fichiers dans votre dossier 'static' à la racine du projet).
+# Elle élimine aussi l'avertissement "No directory at: /usr/src/app/staticfiles/".
 STATICFILES_DIRS = []
-# Exemple si vous avez un dossier 'static' à la racine :
+# Si vous avez des fichiers statiques non rattachés à une app (ex: dans un dossier 'static' au même niveau que ebi3/):
 # STATICFILES_DIRS = [BASE_DIR / 'static']
+
 
 # Fichiers médias (images d'annonces, etc.)
 MEDIA_URL = '/media/'
@@ -138,7 +141,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuration WhiteNoise pour la compression des statiques (optionnel, mais recommandé)
-# Desactivez si vous utilisez un CDN
-# WHITENOISE_MANIFEST_STRICT = False
-# WHITENOISE_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Configuration WhiteNoise
+# Utiliser le stockage compressé pour la production (optionnel, mais recommandé)
+if not DEBUG:
+    WHITENOISE_MANIFEST_STRICT = False
+    WHITENOISE_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
