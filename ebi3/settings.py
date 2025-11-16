@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Vos applications seront ajoutées ici
+    'annonces',
+
 ]
 
 MIDDLEWARE = [
