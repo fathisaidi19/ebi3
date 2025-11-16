@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Vos applications seront ajoutées ici
     'annonces',
-    'whitenoise.runserver_nostatic',  # Recommandé pour le développement local si vous utilisez whitenoise
+    # 'whitenoise.runserver_nostatic' est utile pour le dev local, mais le middleware est suffisant pour prod
 
 ]
 
@@ -124,11 +124,10 @@ STATIC_URL = env("STATIC_URL")
 STATIC_ROOT = BASE_DIR / env("STATIC_ROOT")
 
 # ⚠️ CORRECTION N°2 : STATICFILES_DIRS
-# Cette ligne est cruciale pour que Django sache où chercher les fichiers statiques
-# non associés à une application (ex: fichiers dans votre dossier 'static' à la racine du projet).
-# Elle élimine aussi l'avertissement "No directory at: /usr/src/app/staticfiles/".
+# Ajouté pour éliminer l'avertissement "No directory at: /usr/src/app/staticfiles/"
+# et pour gérer les fichiers statiques de base du projet.
 STATICFILES_DIRS = []
-# Si vous avez des fichiers statiques non rattachés à une app (ex: dans un dossier 'static' au même niveau que ebi3/):
+# Si vous avez un dossier "static" à la racine de votre projet :
 # STATICFILES_DIRS = [BASE_DIR / 'static']
 
 
@@ -142,7 +141,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuration WhiteNoise
-# Utiliser le stockage compressé pour la production (optionnel, mais recommandé)
+# Utiliser le stockage compressé pour la production (recommandé)
 if not DEBUG:
     WHITENOISE_MANIFEST_STRICT = False
     WHITENOISE_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
