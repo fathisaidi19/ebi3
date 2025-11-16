@@ -1,0 +1,1 @@
+web: gunicorn ebi3.wsgi:application --log-file -

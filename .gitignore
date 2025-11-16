@@ -1,0 +1,17 @@
+# Fichiers ignorés par Git
+
+# Environnement virtuel
+/venv
+/.env
+/db.sqlite3
+
+# Fichiers de cache et logs (Ajout de la section des logs)
+__pycache__
+*.pyc
+*.log
+*.sqlite3-journal
+*~
+
+# Fichiers de Django
+/staticfiles
+/media

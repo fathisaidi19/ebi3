@@ -1,0 +1,15 @@
+# Fichiers à ignorer lors de la construction de l'image Docker
+
+# Environnement virtuel
+venv
+/.env
+/db.sqlite3
+
+# Fichiers de cache et logs
+__pycache__
+*.pyc
+*.log
+
+# Fichiers de Git
+.git
+.gitignore
