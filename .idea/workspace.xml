@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="578d3a4d-4fcc-4fd5-9ea5-a1b656022b61" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/annonces/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/annonces/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/annonces/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/annonces/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/annonces/templates/annonces/annonce_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/annonces/templates/annonces/annonce_detail.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/annonces/templates/annonces/annonce_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/annonces/templates/annonces/annonce_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ebi3/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/ebi3/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-    </list>
+    <list default="true" id="578d3a4d-4fcc-4fd5-9ea5-a1b656022b61" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
