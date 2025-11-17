@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load widget_tweaks %}
 
 {% block title %}Liste des Annonces | {{ block.super }}{% endblock %}
 
@@ -10,92 +11,101 @@
         <p>Découvrez les colis, les transporteurs ou les lieux de stockage.</p>
     </header>
 
-    <section id="recherche-avancee">
-        <h2>Recherche Avancée & Filtrage</h2>
-        <form method="GET" action="{% url 'annonce_list' %}">
-            
-            <fieldset>
-                <legend>Filtre par Itinéraire</legend>
-                
-                <label for="ville_depart">Ville de Départ (A):</label>
-                <input type="text" id="ville_depart" name="ville_depart" placeholder="Ex: Paris" value="{{ current_query.ville_depart|default:'' }}">
-                
-                <label for="ville_arrivee">Ville d'Arrivée (B):</label>
-                <input type="text" id="ville_arrivee" name="ville_arrivee" placeholder="Ex: Casablanca" value="{{ current_query.ville_arrivee|default:'' }}">
+    <div class="main-layout">
 
-                <label for="q">Mots-clés (Titre/Description):</label>
-                <input type="search" id="q" name="q" placeholder="Ex: Smartphone, Vêtements" value="{{ current_query.q|default:'' }}">
-            </fieldset>
+        {% comment %} 🟢 BARRE LATÉRALE DE FILTRES (Utilisation de django-filter) {% endcomment %}
+        <div class="sidebar-filters">
+            <h2>Filtres de Recherche</h2>
 
-            <fieldset>
-                <legend>Filtres Détaillés</legend>
-
-                <label for="categorie">Catégorie:</label>
-                <select id="categorie" name="categorie">
-                    <option value="">Toutes les Catégories</option>
-                    {% for cat in categories %}
-                        <option value="{{ cat.id }}" {% if current_query.categorie|slugify == cat.id|slugify %}selected{% endif %}>{{ cat.nom }}</option>
-                    {% endfor %}
-                </select>
-
-                <label for="etat">État du Colis:</label>
-                <select id="etat" name="etat">
-                    <option value="">Tous les États</option>
-                    {% for value, label in etats %}
-                        <option value="{{ value }}" {% if current_query.etat == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-                
-                <label for="date_livraison">Date de Livraison (Max):</label>
-                <input type="date" id="date_livraison" name="date_livraison" value="{{ current_query.date_livraison|default:'' }}">
-
-                <label for="methode_logistique">Méthode Logistique:</label>
-                <select id="methode_logistique" name="methode_logistique">
-                    <option value="">Toutes les Méthodes</option>
-                    {% for value, label in methodes_livraison %}
-                        <option value="{{ value }}" {% if current_query.methode_logistique == value %}selected{% endif %}>{{ label }} ({{ value }})</option>
-                    {% endfor %}
-                </select>
-
-            </fieldset>
-
-            <button type="submit">🔍 Rechercher & Filtrer</button>
-            <a href="{% url 'annonce_list' %}">Réinitialiser les Filtres</a>
-        </form>
-    </section>
-
-    <section id="liste-annonces">
-        <h2>Résultats ({{ page_obj.paginator.count|default:0 }})</h2>
-        
-        {% if annonces %}
-            {% for annonce in annonces %}
-                <article class="annonce-card">
-                    {% with main_photo=annonce.photos.filter(is_main=True).first %}
-                        {% if main_photo and main_photo.image %}
-                            <img src="{{ main_photo.image.url }}" alt="Photo principale de {{ annonce.titre }}">
-                        {% else %}
-                            <img src="{% static 'images/placeholder.png' %}" alt="Pas d'image" style="max-width: 100px;">
-                        {% endif %}
-                    {% endwith %}
-                    
-                    <div class="annonce-info">
-                        <h3><a href="{% url 'annonce_detail' pk=annonce.pk %}">{{ annonce.titre }}</a> <small>({{ annonce.categorie.nom|default:"Non classé" }})</small></h3>
-                        <p><strong>Prix:</strong> {{ annonce.prix }} €</p>
-                        <p><strong>Itinéraire:</strong> {{ annonce.ville_depart }} → {{ annonce.ville_arrivee }}</p>
-                        <p><strong>Livraison Estimée:</strong> {{ annonce.date_livraison_estimee|default:'Non spécifiée' }}</p>
+            <form method="get" class="filter-form">
+                {% comment %} Affiche tous les champs définis dans annonces/filters.py {% endcomment %}
+                {% for field in filter.form %}
+                    <div class="form-group">
+                        {{ field.errors }}
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
                     </div>
-                </article>
-            {% endfor %}
+                {% endfor %}
 
-            {% if is_paginated %}
-                <div class="pagination">
-                    </div>
-            {% endif %}
+                <button type="submit" class="btn-filter">Appliquer les Filtres</button>
+                <a href="{% url 'annonce_list' %}" class="btn-clear">Effacer les Filtres</a>
+            </form>
+        </div>
 
-        {% else %}
-            <p>Aucune annonce ne correspond à vos critères de recherche ou de filtrage.</p>
-        {% endif %}
+        <div class="annonces-content">
+            <section id="liste-annonces">
+                <h2>Résultats ({{ page_obj.paginator.count|default:0 }})</h2>
 
-    </section>
+                {% if annonces %}
+                    {% for annonce in annonces %}
+                        <article class="annonce-card">
+                            {% comment %}
+                            CORRECTION DU TEMPLATESYNTAXERROR:
+                            Utilisation de la méthode helper 'get_main_photo' du modèle.
+                            {% endcomment %}
+                            {% with main_photo=annonce.get_main_photo %}
+                                <div class="annonce-image">
+                                    {% if main_photo and main_photo.image %}
+                                        <img src="{{ main_photo.image.url }}" alt="Photo principale de {{ annonce.titre }}">
+                                    {% else %}
+                                        <img src="{% static 'images/placeholder.png' %}" alt="Pas d'image">
+                                    {% endif %}
+                                </div>
+                            {% endwith %}
+
+                            <div class="annonce-info">
+                                <h3><a href="{% url 'annonce_detail' pk=annonce.pk %}">{{ annonce.titre }}</a> <small>({{ annonce.categorie.nom|default:"Non classé" }})</small></h3>
+                                <p><strong>Prix:</strong> {{ annonce.prix }} €</p>
+                                <p><strong>État:</strong> {{ annonce.get_etat_display }}</p>
+                                <p><strong>Itinéraire:</strong> {{ annonce.ville_depart }} ({{ annonce.pays_depart }}) → {{ annonce.ville_arrivee }} ({{ annonce.pays_arrivee }})</p>
+                                <p><strong>Livraison Estimée:</strong> {{ annonce.date_livraison_estimee|default:'Non spécifiée' }}</p>
+                                <a href="{% url 'annonce_detail' pk=annonce.pk %}" class="btn-detail">Voir les détails</a>
+                            </div>
+                        </article>
+                    {% endfor %}
+
+                    {% if is_paginated %}
+                        <div class="pagination">
+                            {% if page_obj.has_previous %}
+                                <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="prev">Précédent</a>
+                            {% endif %}
+                            <span class="current-page">
+                                Page {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                            {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="next">Suivant</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                {% else %}
+                    <p class="alert-info">Aucune annonce ne correspond à vos critères de recherche ou de filtrage.</p>
+                {% endif %}
+
+            </section>
+        </div>
+    </div>
+
+    <style>
+        .main-layout { display: grid; grid-template-columns: 1fr 3fr; gap: 30px; }
+        .sidebar-filters { background-color: #f8f8f8; padding: 20px; border-radius: 8px; height: fit-content; }
+        .filter-form .form-group { margin-bottom: 15px; }
+        .filter-form label { font-weight: bold; display: block; margin-bottom: 5px; }
+        .form-control { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-filter, .btn-clear { display: block; width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 4px; text-align: center; text-decoration: none; cursor: pointer; }
+        .btn-filter { background-color: #007bff; color: white; }
+        .btn-clear { background-color: #ccc; color: #333; }
+
+        .annonces-content { display: grid; gap: 20px; }
+        .annonce-card { display: flex; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        .annonce-image { width: 150px; height: 150px; flex-shrink: 0; }
+        .annonce-image img, .no-image { width: 100%; height: 100%; object-fit: cover; background-color: #eee; display: flex; justify-content: center; align-items: center; color: #666; }
+        .annonce-info { padding: 15px; flex-grow: 1; }
+        .price { font-size: 1.2em; color: #dc3545; font-weight: bold; margin-bottom: 5px; }
+        .meta { font-size: 0.9em; color: #666; margin-bottom: 5px; }
+        .route { font-size: 0.95em; margin-bottom: 10px; }
+        .btn-detail { background-color: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 0.9em; display: inline-block; margin-top: 5px; }
+        .alert-info { padding: 10px; background-color: #e9f7fe; border: 1px solid #c9e6f3; border-radius: 4px; }
+    </style>
 
 {% endblock content %}

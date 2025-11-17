@@ -1,6 +1,6 @@
 # annonces/admin.py
 from django.contrib import admin
-from .models import Annonce, Categorie, PhotoAnnonce  # Importation de PhotoAnnonce
+from .models import Annonce, Categorie, PhotoAnnonce
 
 
 # Inline pour les photos
@@ -10,7 +10,18 @@ class PhotoAnnonceInline(admin.TabularInline):
     fields = ('image', 'description', 'is_main')
 
 
-# Admin pour Categorie (Correction : retrait des références à 'parent')
+# Inline pour les Sous-Annonces (enfants)
+class SousAnnonceInline(admin.TabularInline):
+    model = Annonce
+    fk_name = 'parent_annonce'  # Clé étrangère dans le modèle Annonce
+    extra = 0  # Ne pas afficher de formulaire vide par défaut
+    fields = ('titre', 'prix', 'is_active', 'date_creation')
+    readonly_fields = ('date_creation',)
+    verbose_name = "Sous-Annonce Liée"
+    verbose_name_plural = "Sous-Annonces Liées"
+
+
+# Admin pour Categorie
 @admin.register(Categorie)
 class CategorieAdmin(admin.ModelAdmin):
     list_display = ('nom', 'slug',)
@@ -18,15 +29,22 @@ class CategorieAdmin(admin.ModelAdmin):
     search_fields = ('nom',)
 
 
-# Admin pour Annonce
+# Admin pour Annonce (MODIFIÉ)
 @admin.register(Annonce)
 class AnnonceAdmin(admin.ModelAdmin):
-    list_display = ('titre', 'depositaire', 'prix', 'date_creation', 'is_active')
+    list_display = ('titre', 'depositaire', 'prix', 'date_creation', 'is_active',
+                    'parent_annonce')  # Affichage du parent
     list_filter = ('is_active', 'etat', 'categorie', 'methode_livraison')
     search_fields = ('titre', 'description', 'depositaire__username')
-    inlines = [PhotoAnnonceInline]  # Ajout de l'inline pour les photos
+
+    # Ajout des deux inlines
+    inlines = [PhotoAnnonceInline, SousAnnonceInline]
 
     fieldsets = (
+        ('Relation', {  # Nouveau Fieldset pour gérer la relation parent
+            'fields': ('parent_annonce',),
+            'description': "Laissez vide si c'est une annonce principale."
+        }),
         ('Informations Générales', {
             'fields': ('depositaire', 'titre', 'description', 'prix', 'categorie', 'etat')
         }),

@@ -13,11 +13,24 @@ User = get_user_model()
 class Categorie(models.Model):
     nom = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children',
+        verbose_name='Catégorie Parent'
+    )
 
     class Meta:
         verbose_name_plural = "Catégories"
+        # Ajoutez une contrainte pour trier par parent et nom
+        ordering = ['parent__nom', 'nom']
 
     def __str__(self):
+        # Affichage hiérarchique dans l'admin et les listes
+        if self.parent:
+            return f"{self.parent.nom} > {self.nom}"
         return self.nom
 
 
@@ -41,6 +54,17 @@ class Annonce(models.Model):
         (LIVRAISON_TRANSPORT, '2. Transporteur sélectionné'),
         (LIVRAISON_STOCKAGE_TRANSPORT, '3. Stockage + Transporteur sélectionné'),
     ]
+
+    # --- NOUVEAU CHAMP : RELATION PARENT-ENFANT ---
+    parent_annonce = models.ForeignKey(
+        'self',  # Référence au modèle Annonce lui-même
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='sous_annonces',  # Nom utilisé pour récupérer les annonces enfants
+        verbose_name="Annonce Parent (optionnel)"
+    )
+    # ---------------------------------------------
 
     # Informations de base
     titre = models.CharField(max_length=255)
@@ -78,7 +102,9 @@ class Annonce(models.Model):
         verbose_name_plural = "Annonces"
 
     def __str__(self):
-        return self.titre
+        # Affiche si c'est une sous-annonce
+        status = "(Sous-Annonce)" if self.parent_annonce else ""
+        return f"{self.titre} {status}"
 
     def get_absolute_url(self):
         return reverse('annonce_detail', kwargs={'pk': self.pk})
@@ -113,7 +139,7 @@ class PhotoAnnonce(models.Model):
     class Meta:
         ordering = ('-is_main', 'date_upload')  # La photo principale est toujours en premier
         verbose_name = "Photo d'Annonce"
-        verbose_name_plural = "Photos d'Annonce"
+        verbose_name_plural = "Photos d'Annonce"  # <-- CORRECTION FAITE ICI
 
     def __str__(self):
         return f"Photo pour {self.annonce.titre} ({self.pk})"

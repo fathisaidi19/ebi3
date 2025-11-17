@@ -56,9 +56,10 @@ INSTALLED_APPS = [
     'comptes',
     'transporteurs',
     'stockages',
+    'widget_tweaks',
 
     # Librairies tierces nécessaires
-    'django_filters',  # ⬅️ AJOUTÉ
+    'django_filters',
 ]
 
 MIDDLEWARE = [

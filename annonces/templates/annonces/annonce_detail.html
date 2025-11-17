@@ -5,10 +5,17 @@
 {% block content %}
     <h1>{{ annonce.titre }}</h1>
 
+    {% if annonce.parent_annonce %}
+        <p class="alert-info">
+            Cette annonce est une **sous-annonce** liée à l'annonce principale :
+            <a href="{% url 'annonce_detail' pk=annonce.parent_annonce.pk %}">{{ annonce.parent_annonce.titre }}</a>.
+        </p>
+    {% endif %}
+
     <div class="grid-layout">
         <div class="main-content">
 
-            {% comment %} Section Média (MODIFIÉE : Affichage Galerie) {% endcomment %}
+            {% comment %} Section Média (Affichage Galerie) {% endcomment %}
             <div class="media-section">
                 {% with photos=annonce.photos.all %}
                     {% if photos %}
@@ -44,6 +51,25 @@
                     <li>**Lieu de Stockage:** <a href="{% url 'stockage_detail' pk=annonce.lieu_stockage_choisi.pk %}">{{ annonce.lieu_stockage_choisi.nom_lieu }}</a></li>
                 {% endif %}
             </ul>
+
+            {% comment %} 🟢 NOUVELLE SECTION : SOUS-ANNONCES {% endcomment %}
+            {% with sous_annonces=annonce.sous_annonces.filter(is_active=True) %}
+                {% if sous_annonces %}
+                    <hr>
+                    <section class="sous-annonces-section">
+                        <h2>Sous-Annonces Liées ({{ sous_annonces.count }})</h2>
+                        <p>Cette annonce inclut les offres ou services complémentaires suivants :</p>
+                        <ul class="list-group">
+                            {% for sous_annonce in sous_annonces %}
+                                <li class="list-item">
+                                    <a href="{% url 'annonce_detail' pk=sous_annonce.pk %}">{{ sous_annonce.titre }}</a>
+                                    - **{{ sous_annonce.prix }} €**
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                {% endif %}
+            {% endwith %}
         </div>
 
         <div class="sidebar">
@@ -90,7 +116,8 @@
             // Mettre à jour la classe 'active' pour les miniatures
             const thumbnails = document.querySelectorAll('.thumbnail');
             thumbnails.forEach(thumb => {
-                if (thumb.src.includes(url)) { // Utilisation de includes() pour être plus tolérant
+                // Utilisation de includes() pour être plus tolérant dans l'URL de l'image
+                if (thumb.src.includes(url.split('?')[0])) {
                     thumb.classList.add('active');
                 } else {
                     thumb.classList.remove('active');
@@ -102,7 +129,13 @@
     <style>
         .grid-layout { display: grid; grid-template-columns: 3fr 1fr; gap: 30px; }
         .sidebar { background-color: #f8f8f8; padding: 20px; border-radius: 8px; }
-        /* ... (styles de boutons et prix) ... */
+        .price-box { font-size: 1.5em; text-align: center; padding: 10px; background-color: #e9ecef; margin-bottom: 20px; border-radius: 4px; }
+        .btn-action { display: block; text-align: center; padding: 10px; margin-bottom: 10px; text-decoration: none; border-radius: 5px; color: white; }
+        .btn-action.edit { background-color: #ffc107; }
+        .btn-action.contact { background-color: #28a745; }
+        .btn-action.delete { background-color: #dc3545; }
+        .depositaire-info { text-align: center; margin-top: 20px; font-style: italic; color: #666; }
+
         .main-image-container { text-align: center; margin-bottom: 15px; }
         .main-image { max-width: 100%; height: auto; max-height: 400px; border-radius: 8px; object-fit: contain; }
         .thumbnail-gallery { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; border-top: 1px solid #eee; }
@@ -117,5 +150,11 @@
         }
         .thumbnail:hover, .thumbnail.active { border-color: #007bff; }
         .no-photo { text-align: center; padding: 50px; border: 1px dashed #ccc; border-radius: 8px; color: #999; }
+
+        /* Styles pour la nouvelle section Sous-Annonces */
+        .sous-annonces-section { margin-top: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        .list-group { list-style: none; padding-left: 0; }
+        .list-item { margin-bottom: 8px; padding: 5px 0; border-bottom: 1px dotted #eee; }
+        .list-item:last-child { border-bottom: none; }
     </style>
 {% endblock content %}
