@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil {{ profile.nom_lieu }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="header-profile">
+        <h1>Profil Lieu de Stockage : {{ profile.nom_lieu }}</h1>
+        <p>Membre depuis le {{ profile.date_creation|date:"d M Y" }}</p>
+    </div>
+
+    <div class="grid-profile">
+
+        <div class="section-details">
+            <h2>Présentation et Description</h2>
+            <p>{{ profile.description|linebreaksbr }}</p>
+
+            <h2>Informations de Localisation</h2>
+            <div class="info-block"><strong>Localisation:</strong> {{ profile.ville }}, {{ profile.pays }}</div>
+            <div class="info-block"><strong>Superficie:</strong> {{ profile.superficie_m2 }} m²</div>
+
+            <h2>Conditions de Stockage</h2>
+            <ul>
+                <li><strong>Température Contrôlée:</strong> {% if profile.temperature_controle %}Oui ✅{% else %}Non ❌{% endif %}</li>
+                <li><strong>Sécurité 24/7:</strong> {% if profile.securite_24_7 %}Oui ✅{% else %}Non ❌{% endif %}</li>
+                <li><strong>Adresse Complète:</strong> {% if user.is_authenticated and user == profile.user %}
+                    {{ profile.adresse_complete }}
+                {% else %}
+                    Visible uniquement pour les propriétaires et les utilisateurs autorisés.
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="sidebar-actions">
+            <h2>Actions</h2>
+            {% if user.is_authenticated and user == profile.user %}
+                <p><a href="{% url 'stockage_update' pk=profile.pk %}" class="btn-action edit">Modifier mon Profil</a></p>
+                <p><a href="{% url 'stockage_delete' pk=profile.pk %}" class="btn-action delete">Supprimer mon Profil</a></p>
+            {% elif user.is_authenticated %}
+                {% comment %} 🟢 AJOUT DU LIEN DE MESSAGERIE ICI {% endcomment %}
+                <p><a href="{% url 'start_conversation_user' user_id=profile.user.pk %}" class="btn-action contact">Contacter ce Lieu de Stockage</a></p>
+            {% else %}
+                 <p class="alert-info">Connectez-vous pour contacter ce lieu de stockage.</p>
+            {% endif %}
+
+        </div>
+
+    </div>
+    <p style="margin-top: 20px;"><a href="{% url 'stockage_list' %}">← Retour à la liste des Lieux de Stockage</a></p>
+
+    <style>
+        .grid-profile { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+        .section-details { padding: 15px; border: 1px solid #eee; border-radius: 5px; }
+        .sidebar-actions { padding: 15px; background-color: #f8f8f8; border-radius: 5px; }
+        .btn-action { display: block; text-align: center; padding: 10px; margin-bottom: 10px; text-decoration: none; border-radius: 5px; color: white; }
+        .btn-action.edit { background-color: #ffc107; }
+        .btn-action.contact { background-color: #28a745; }
+        .btn-action.delete { background-color: #dc3545; }
+        .info-block { margin-bottom: 10px; }
+        .info-block strong { display: inline-block; width: 150px; }
+        ul { list-style: none; padding-left: 0; }
+        ul li { margin-bottom: 5px; }
+    </style>
+{% endblock content %}

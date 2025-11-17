@@ -1,22 +1,25 @@
-# Utilise une image Python légère comme base
-FROM python:3.11-slim
+# Utiliser une image Python officielle
+FROM python:3.12-slim
 
-# Met en place des variables d'environnement
+# Définir les variables d'environnement
+ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE ebi3.settings
-ENV SECRET_KEY une_cle_par_defaut
-ENV PORT 10000
 
-# Crée un répertoire de travail dans l'image
+# Définir le répertoire de travail
 WORKDIR /usr/src/app
 
-# Copie les fichiers de dépendances et les installe
+# Copier les fichiers de dépendance
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copie le reste du code de l'application
+# Installer les dépendances
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+
+# Copier le reste du code de l'application
 COPY . .
 
-# Définition de l'utilisateur root pour les commandes de déploiement (comme migrate)
-# Cette commande sera remplacée par le Docker Command de Render
-CMD ["python", "manage.py", "migrate", "&&", "gunicorn", "ebi3.wsgi:application", "--bind", "0.0.0.0:$PORT"]
+# Collecter les fichiers statiques (étape essentielle pour WhiteNoise)
+RUN python manage.py collectstatic --noinput
+
+# Exécuter l'application en utilisant Gunicorn (référence le Procfile)
+# ENTRYPOINT est déjà géré par Render

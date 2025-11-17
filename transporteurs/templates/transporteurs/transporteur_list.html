@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des Transporteurs | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <h1>Transporteurs et Services Logistiques</h1>
+
+    {% comment %} Liens d'action basés sur l'existence ou non du profil de l'utilisateur {% endcomment %}
+    {% if user.is_authenticated %}
+        {% if user.transporteur_profile %}
+            <p>Gérez votre profil : <a href="{% url 'transporteur_update' pk=user.transporteur_profile.pk %}" class="btn-edit">Modifier mon Profil</a></p>
+        {% else %}
+            <p><a href="{% url 'transporteur_create' %}" class="btn-create">Devenez un Transporteur (Créer votre profil)</a></p>
+        {% endif %}
+    {% endif %}
+
+    <section>
+        {% if transporteurs %}
+            {% for profile in transporteurs %}
+                <article class="profile-card">
+                    <h2><a href="{% url 'transporteur_detail' pk=profile.pk %}">{{ profile.nom_entreprise }}</a></h2>
+                    <p><strong>Base:</strong> {{ profile.ville_base }}, {{ profile.pays_base }}</p>
+                    <p><strong>Méthode:</strong> {{ profile.get_methodes_transportees_display }}</p>
+                    <p>{{ profile.description|truncatewords:20 }}</p>
+
+                    {% if profile.assurance_incluse %}
+                        <span class="badge badge-success">Assurance Incluse</span>
+                    {% endif %}
+                </article>
+            {% endfor %}
+            {% else %}
+            <p>Aucun profil Transporteur n'est encore enregistré.</p>
+        {% endif %}
+    </section>
+
+    <style>
+        .btn-create, .btn-edit { background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 20px; }
+        .btn-edit { background-color: #ffc107; color: #333; }
+        .profile-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+        .badge-success { background-color: #28a745; color: white; padding: 5px 8px; border-radius: 3px; font-size: 0.9em; }
+    </style>
+
+{% endblock content %}

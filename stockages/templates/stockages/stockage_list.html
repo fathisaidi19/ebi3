@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des Lieux de Stockage | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <h1>Lieux de Stockage et Plateformes de Relais</h1>
+
+    {% comment %} Liens d'action basés sur l'existence ou non du profil de l'utilisateur {% endcomment %}
+    {% if user.is_authenticated %}
+        {% if user.stockage_profile %}
+            <p>Gérez votre profil : <a href="{% url 'stockage_update' pk=user.stockage_profile.pk %}" class="btn-edit">Modifier mon Profil</a></p>
+        {% else %}
+            <p><a href="{% url 'stockage_create' %}" class="btn-create">Devenez un Lieu de Stockage (Créer votre profil)</a></p>
+        {% endif %}
+    {% endif %}
+
+    <section>
+        {% if stockages %}
+            {% for profile in stockages %}
+                <article class="profile-card">
+                    <h2><a href="{% url 'stockage_detail' pk=profile.pk %}">{{ profile.nom_lieu }}</a></h2>
+                    <p><strong>Localisation:</strong> {{ profile.ville }}, {{ profile.pays }}</p>
+                    <p><strong>Superficie:</strong> {{ profile.superficie_m2 }} m²</p>
+                    <p>{{ profile.description|truncatewords:20 }}</p>
+
+                    {% if profile.securite_24_7 %}
+                        <span class="badge badge-success">Sécurité 24/7</span>
+                    {% endif %}
+                </article>
+            {% endfor %}
+            {% else %}
+            <p>Aucun profil de Lieu de Stockage n'est encore enregistré.</p>
+        {% endif %}
+    </section>
+
+    <style>
+        .btn-create, .btn-edit { background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 20px; }
+        .btn-edit { background-color: #ffc107; color: #333; }
+        .profile-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+        .badge-success { background-color: #28a745; color: white; padding: 5px 8px; border-radius: 3px; font-size: 0.9em; }
+    </style>
+
+{% endblock content %}

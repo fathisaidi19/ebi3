@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmation de Suppression | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <h1>Confirmation de Suppression</h1>
+
+    <p class="alert-warning">
+        Êtes-vous sûr de vouloir supprimer votre profil de Lieu de Stockage : <strong>{{ profile.nom_lieu }}</strong> ?
+    </p>
+    <p class="alert-danger">
+        Cette action est irréversible et retirera votre profil de toutes les annonces où il est sélectionné (le champ sera mis à vide).
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-delete">Oui, Supprimer Définitivement</button>
+        <a href="{% url 'stockage_detail' pk=profile.pk %}" class="btn-cancel">Annuler</a>
+    </form>
+
+    <style>
+        .alert-warning { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+        .alert-danger { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+        .btn-delete { background-color: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 15px; }
+        .btn-cancel { background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; }
+    </style>
+{% endblock content %}

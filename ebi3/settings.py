@@ -1,3 +1,5 @@
+# ebi3/settings.py
+
 import os
 from pathlib import Path
 import environ
@@ -22,8 +24,7 @@ if os.path.exists(BASE_DIR / ".env"):
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 
-# ⚠️ CORRECTION CRITIQUE (ALLOWED_HOSTS)
-# Liste des hôtes autorisés.
+# ⚠️ GESTION DES HÔTES AUTORISÉS (CRITIQUE POUR LA PROD)
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '::1']
 
 # Configuration spécifique pour Render en mode production (DEBUG=False)
@@ -38,10 +39,9 @@ if not DEBUG:
     # 2. Ajout du domaine de base de Render (wildcard)
     ALLOWED_HOSTS.append('.onrender.com')
 
-    # 3. Ajout explicite de votre domaine pour garantir la correspondance
-    # Ceci est la ligne la plus importante pour corriger le 400 actuel !
+    # 3. Ajout explicite du domaine de l'application
     ALLOWED_HOSTS.append('ebi3-jii8.onrender.com')
-    
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -49,10 +49,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Vos applications seront ajoutées ici
-    'annonces',
-    # 'whitenoise.runserver_nostatic' est utile pour le dev local, mais le middleware est suffisant pour prod
 
+    # Vos applications
+    'annonces',
+    'messagerie',
+    'comptes',
+    'transporteurs',
+    'stockages',
+
+    # Librairies tierces nécessaires
+    'django_filters',  # ⬅️ AJOUTÉ
 ]
 
 MIDDLEWARE = [
@@ -72,7 +78,7 @@ ROOT_URLCONF = 'ebi3.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Si vous avez un dossier 'templates' à la racine de votre projet
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -88,13 +94,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ebi3.wsgi.application'
 
 # --- CONFIGURATION DE LA BASE DE DONNÉES (DB) ---
+# Utilise la variable d'environnement DATABASE_URL (par Render) ou l'utilise du .env (local)
 DATABASES = {
     'default': env.db()
 }
 
 # Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -111,8 +116,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 LANGUAGE_CODE = 'fr-fr'
 
 TIME_ZONE = 'Europe/Paris'
@@ -122,24 +125,23 @@ USE_I18N = True
 USE_TZ = True
 
 # --- CONFIGURATION DES FICHIERS STATIQUES ---
-STATIC_URL = env("STATIC_URL")
-STATIC_ROOT = BASE_DIR / env("STATIC_ROOT")
+# Utilisation de env() pour l'URL et le ROOT des statics (assure la compatibilité local/prod)
+STATIC_URL = env("STATIC_URL", default='/static/')
+STATIC_ROOT = BASE_DIR / env("STATIC_ROOT", default='staticfiles')
 
-# ⚠️ CORRECTION N°2 : STATICFILES_DIRS
-# Ajouté pour éliminer l'avertissement "No directory at: /usr/src/app/staticfiles/"
-# et pour gérer les fichiers statiques de base du projet.
-STATICFILES_DIRS = []
-# Si vous avez un dossier "static" à la racine de votre projet :
-# STATICFILES_DIRS = [BASE_DIR / 'static']
-
+# Fichiers statiques supplémentaires du projet
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # S'il y a un dossier 'static' à la racine du projet
+]
 
 # Fichiers médias (images d'annonces, etc.)
 MEDIA_URL = '/media/'
+# IMPORTANT: Render ne supporte pas le stockage de fichiers médias permanents sur le disque local de l'application.
+# Pour le déploiement réel, vous devrez utiliser un service externe (AWS S3, Cloudinary, etc.) et une librairie comme django-storages.
+# Pour l'instant, nous laissons la configuration MEDIA_ROOT pour le développement local.
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuration WhiteNoise
@@ -147,3 +149,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 if not DEBUG:
     WHITENOISE_MANIFEST_STRICT = False
     WHITENOISE_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# URL de redirection après une connexion réussie
+LOGIN_REDIRECT_URL = '/'
+
+# URL vers laquelle un utilisateur non authentifié est redirigé
+LOGIN_URL = 'login'
+
+# URL de redirection après une déconnexion réussie
+LOGOUT_REDIRECT_URL = '/'

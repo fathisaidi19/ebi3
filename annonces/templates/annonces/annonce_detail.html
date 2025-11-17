@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Annonce: {{ annonce.titre }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <h1>{{ annonce.titre }}</h1>
+
+    <div class="grid-layout">
+        <div class="main-content">
+
+            {% comment %} Section Média (MODIFIÉE : Affichage Galerie) {% endcomment %}
+            <div class="media-section">
+                {% with photos=annonce.photos.all %}
+                    {% if photos %}
+                        <div class="main-image-container">
+                            <img src="{{ annonce.get_main_photo.image.url }}" alt="Photo principale de {{ annonce.titre }}" id="current-main-image" class="main-image">
+                        </div>
+                        <div class="thumbnail-gallery">
+                            {% for photo in photos %}
+                                <img src="{{ photo.image.url }}"
+                                     alt="Photo {{ forloop.counter }}"
+                                     class="thumbnail {% if photo == annonce.get_main_photo %}active{% endif %}"
+                                     onclick="changeMainImage('{{ photo.image.url }}')">
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="no-photo">Pas de photo disponible pour cette annonce.</p>
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            {% comment %} Description {% endcomment %}
+            <h2>Description</h2>
+            <p>{{ annonce.description|linebreaksbr }}</p>
+
+            {% comment %} Logistique Détails {% endcomment %}
+            <h2>Détails Logistiques</h2>
+            <ul>
+                <li>**Méthode:** {{ annonce.get_methode_livraison_display }}</li>
+                {% if annonce.transporteur_choisi %}
+                    <li>**Transporteur:** <a href="{% url 'transporteur_detail' pk=annonce.transporteur_choisi.pk %}">{{ annonce.transporteur_choisi.nom_entreprise }}</a></li>
+                {% endif %}
+                {% if annonce.lieu_stockage_choisi %}
+                    <li>**Lieu de Stockage:** <a href="{% url 'stockage_detail' pk=annonce.lieu_stockage_choisi.pk %}">{{ annonce.lieu_stockage_choisi.nom_lieu }}</a></li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="sidebar">
+            <div class="price-box">
+                Prix demandé: **{{ annonce.prix }} €**
+            </div>
+
+            <h3>Informations Clés</h3>
+            <ul>
+                <li>**État:** {{ annonce.get_etat_display }}</li>
+                <li>**Catégorie:** {{ annonce.categorie.nom }}</li>
+                <li>**Départ:** {{ annonce.ville_depart }}, {{ annonce.pays_depart }}</li>
+                <li>**Arrivée:** {{ annonce.ville_arrivee }}, {{ annonce.pays_arrivee }}</li>
+                {% if annonce.date_livraison_estimee %}
+                    <li>**Livraison estimée:** {{ annonce.date_livraison_estimee }}</li>
+                {% endif %}
+            </ul>
+
+            <h3>Actions</h3>
+            {% if user.is_authenticated %}
+                {% if user == annonce.depositaire %}
+                    <p><a href="{% url 'annonce_update' pk=annonce.pk %}" class="btn-action edit">Modifier l'Annonce</a></p>
+                    <p><a href="{% url 'annonce_delete' pk=annonce.pk %}" class="btn-action delete">Supprimer l'Annonce</a></p>
+                {% else %}
+                    <p><a href="{% url 'start_conversation_annonce' user_id=annonce.depositaire.pk annonce_pk=annonce.pk %}" class="btn-action contact">
+                        Contacter le Dépositaire
+                    </a></p>
+                {% endif %}
+            {% else %}
+                 <p class="alert-info"><a href="{% url 'login' %}">Connectez-vous</a> pour contacter le dépositaire.</p>
+            {% endif %}
+
+            <p class="depositaire-info">
+                Déposé par **{{ annonce.depositaire.username }}**
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function changeMainImage(url) {
+            const mainImage = document.getElementById('current-main-image');
+            mainImage.src = url;
+
+            // Mettre à jour la classe 'active' pour les miniatures
+            const thumbnails = document.querySelectorAll('.thumbnail');
+            thumbnails.forEach(thumb => {
+                if (thumb.src.includes(url)) { // Utilisation de includes() pour être plus tolérant
+                    thumb.classList.add('active');
+                } else {
+                    thumb.classList.remove('active');
+                }
+            });
+        }
+    </script>
+
+    <style>
+        .grid-layout { display: grid; grid-template-columns: 3fr 1fr; gap: 30px; }
+        .sidebar { background-color: #f8f8f8; padding: 20px; border-radius: 8px; }
+        /* ... (styles de boutons et prix) ... */
+        .main-image-container { text-align: center; margin-bottom: 15px; }
+        .main-image { max-width: 100%; height: auto; max-height: 400px; border-radius: 8px; object-fit: contain; }
+        .thumbnail-gallery { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; border-top: 1px solid #eee; }
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            transition: border-color 0.2s;
+        }
+        .thumbnail:hover, .thumbnail.active { border-color: #007bff; }
+        .no-photo { text-align: center; padding: 50px; border: 1px dashed #ccc; border-radius: 8px; color: #999; }
+    </style>
+{% endblock content %}

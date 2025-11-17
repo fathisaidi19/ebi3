@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil {{ profile.nom_entreprise }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="header-profile">
+        <h1>Profil Transporteur : {{ profile.nom_entreprise }}</h1>
+        <p>Membre depuis le {{ profile.date_creation|date:"d M Y" }}</p>
+    </div>
+
+    <div class="grid-profile">
+
+        <div class="section-details">
+            <h2>Présentation et Description</h2>
+            <p>{{ profile.description|linebreaksbr }}</p>
+
+            <h2>Informations de Base</h2>
+            <div class="info-block"><strong>Base:</strong> {{ profile.ville_base }}, {{ profile.pays_base }}</div>
+            <div class="info-block"><strong>Méthode principale:</strong> {{ profile.get_methodes_transportees_display }}</div>
+
+            <h3>Compétences et Options</h3>
+            <ul>
+                <li><strong>Assurance Incluse:</strong> {% if profile.assurance_incluse %}Oui ✅{% else %}Non ❌{% endif %}</li>
+                <li><strong>Transport Dangereux:</strong> {% if profile.transport_dangereux %}Autorisé ⚠️{% else %}Non Autorisé 🚫{% endif %}</li>
+                {% if profile.licence_transport %}
+                    <li><strong>Licence Transport:</strong> {{ profile.licence_transport }}</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="sidebar-actions">
+            <h2>Actions</h2>
+            {% if user.is_authenticated and user == profile.user %}
+                <p><a href="{% url 'transporteur_update' pk=profile.pk %}" class="btn-action edit">Modifier mon Profil</a></p>
+                <p><a href="{% url 'transporteur_delete' pk=profile.pk %}" class="btn-action delete">Supprimer mon Profil</a></p>
+            {% elif user.is_authenticated %}
+                {% comment %} 🟢 AJOUT DU LIEN DE MESSAGERIE ICI {% endcomment %}
+                <p><a href="{% url 'start_conversation_user' user_id=profile.user.pk %}" class="btn-action contact">Contacter ce Transporteur</a></p>
+            {% else %}
+                 <p class="alert-info">Connectez-vous pour contacter ce transporteur.</p>
+            {% endif %}
+
+        </div>
+
+    </div>
+    <p style="margin-top: 20px;"><a href="{% url 'transporteur_list' %}">← Retour à la liste des Transporteurs</a></p>
+
+    <style>
+        .grid-profile { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+        .section-details { padding: 15px; border: 1px solid #eee; border-radius: 5px; }
+        .sidebar-actions { padding: 15px; background-color: #f8f8f8; border-radius: 5px; }
+        .btn-action { display: block; text-align: center; padding: 10px; margin-bottom: 10px; text-decoration: none; border-radius: 5px; color: white; }
+        .btn-action.edit { background-color: #ffc107; }
+        .btn-action.contact { background-color: #28a745; }
+        .btn-action.delete { background-color: #dc3545; }
+        .info-block { margin-bottom: 10px; }
+        .info-block strong { display: inline-block; width: 150px; }
+        ul { list-style: none; padding-left: 0; }
+        ul li { margin-bottom: 5px; }
+    </style>
+{% endblock content %}

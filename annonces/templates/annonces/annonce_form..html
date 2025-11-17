@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load django_widget_tweaks %}
+
+{% block title %}{% if object %}Modifier{% else %}Créer{% endif %} une Annonce | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <h1>{% if object %}Modifier l'Annonce : {{ object.titre }}{% else %}Déposer une Nouvelle Annonce{% endif %}</h1>
+
+    {% comment %} ATTENTION : L'ajout de photos nécessite enctype="multipart/form-data" {% endcomment %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <fieldset>
+            <legend>Informations sur l'Article et l'Itinéraire</legend>
+
+            {% comment %} Affichage de tous les champs sauf les champs logistiques conditionnels {% endcomment %}
+            {% for field in form.visible_fields %}
+                {% if field.name not in "transporteur_choisi lieu_stockage_choisi methode_livraison paiement_requis" %}
+                    <div class="form-group">
+                        {{ field.errors }}
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% if field.help_text %}<small class="helptext">{{ field.help_text }}</small>{% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </fieldset>
+
+        <fieldset id="photos-section">
+            <legend>Photos de l'Annonce (max 5)</legend>
+
+            {% comment %} Le management form doit être rendu EN PREMIER {% endcomment %}
+            {{ photo_formset.management_form }}
+
+            <div id="photo-formset-container">
+                {% for photo_form in photo_formset %}
+                    <div class="photo-item {% if photo_form.instance.pk %}existing-photo{% else %}new-photo{% endif %}" id="photo-{{ photo_form.prefix }}">
+
+                        {% if photo_form.instance.image %}
+                            <div class="current-image">
+                                <img src="{{ photo_form.instance.image.url }}" alt="Image actuelle" style="max-width: 100px; max-height: 100px; margin-right: 15px;">
+                                <label style="font-weight: normal; font-size: 0.9em;">
+                                    Remplacer l'image:
+                                </label>
+                            </div>
+                        {% endif %}
+
+                        <div class="photo-fields">
+                            <div class="form-group">
+                                {{ photo_form.image.errors }}
+                                <label for="{{ photo_form.image.id_for_label }}">Fichier Image:</label>
+                                {{ photo_form.image }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ photo_form.description.id_for_label }}">Description (Optionnel):</label>
+                                {{ photo_form.description|add_class:"form-control" }}
+                            </div>
+                            <div class="form-group checkbox-group">
+                                {{ photo_form.is_main }}
+                                <label for="{{ photo_form.is_main.id_for_label }}" style="display: inline; margin-left: 10px;">Photo principale</label>
+                            </div>
+
+                            {% if photo_form.instance.pk %}
+                                <div class="form-group checkbox-group delete-checkbox">
+                                    {{ photo_form.DELETE }}
+                                    <label for="{{ photo_form.DELETE.id_for_label }}" style="display: inline; margin-left: 10px; color: red;">Supprimer cette photo existante</label>
+                                </div>
+                                {{ photo_form.id }}
+                            {% endif %}
+                        </div>
+
+                    </div>
+                    <hr>
+                {% endfor %}
+            </div>
+
+            <button type="button" id="add-photo-button" class="btn-add">Ajouter une autre photo</button>
+            <p class="helptext">Vous pouvez télécharger jusqu'à 5 photos.</p>
+
+        </fieldset>
+
+        <fieldset id="logistique-section">
+            <legend>Choix Logistiques</legend>
+
+            <div class="form-group">
+                {{ form.methode_livraison.errors }}
+                <label for="{{ form.methode_livraison.id_for_label }}">{{ form.methode_livraison.label }}</label>
+                {{ form.methode_livraison|add_class:"form-control" }}
+                {% if form.methode_livraison.help_text %}<small class="helptext">{{ form.methode_livraison.help_text }}</small>{% endif %}
+            </div>
+
+            <div id="transporteur-field" class="form-group logistique-field">
+                {{ form.transporteur_choisi.errors }}
+                <label for="{{ form.transporteur_choisi.id_for_label }}">{{ form.transporteur_choisi.label }}</label>
+                {{ form.transporteur_choisi|add_class:"form-control" }}
+                {% if form.transporteur_choisi.help_text %}<small class="helptext">{{ form.transporteur_choisi.help_text }}</small>{% endif %}
+                <p class="helptext"><a href="{% url 'transporteur_list' %}" target="_blank">Voir les transporteurs disponibles</a></p>
+            </div>
+
+            <div id="stockage-field" class="form-group logistique-field">
+                {{ form.lieu_stockage_choisi.errors }}
+                <label for="{{ form.lieu_stockage_choisi.id_for_label }}">{{ form.lieu_stockage_choisi.label }}</label>
+                {{ form.lieu_stockage_choisi|add_class:"form-control" }}
+                {% if form.lieu_stockage_choisi.help_text %}<small class="helptext">{{ form.lieu_stockage_choisi.help_text }}</small>{% endif %}
+                <p class="helptext"><a href="{% url 'stockage_list' %}" target="_blank">Voir les lieux de stockage disponibles</a></p>
+            </div>
+
+            <div class="form-group checkbox-group">
+                {{ form.paiement_requis.errors }}
+                {{ form.paiement_requis }}
+                <label for="{{ form.paiement_requis.id_for_label }}" style="display: inline; margin-left: 10px;">{{ form.paiement_requis.label }}</label>
+            </div>
+
+        </fieldset>
+
+        <button type="submit" class="btn-submit">{% if object %}Modifier l'Annonce{% else %}Déposer l'Annonce{% endif %}</button>
+        <a href="{% url 'annonce_list' %}">Annuler</a>
+
+    </form>
+
+    <script>
+        // JS pour la logique des champs logistiques (précédemment implémentée)
+        document.addEventListener('DOMContentLoaded', function() {
+            const methodeSelect = document.getElementById('id_methode_livraison');
+            const transporteurField = document.getElementById('transporteur-field');
+            const stockageField = document.getElementById('stockage-field');
+
+            function toggleLogistiqueFields() {
+                const selectedValue = methodeSelect.value;
+                if (selectedValue === '1') {
+                    transporteurField.style.display = 'none';
+                    stockageField.style.display = 'none';
+                } else if (selectedValue === '2') {
+                    transporteurField.style.display = 'block';
+                    stockageField.style.display = 'none';
+                } else if (selectedValue === '3') {
+                    transporteurField.style.display = 'block';
+                    stockageField.style.display = 'block';
+                }
+            }
+            toggleLogistiqueFields();
+            methodeSelect.addEventListener('change', toggleLogistiqueFields);
+
+            // ==========================================================
+            // JS pour la gestion dynamique du FormSet de Photos
+            // ==========================================================
+            const addButton = document.getElementById('add-photo-button');
+            const formContainer = document.getElementById('photo-formset-container');
+            const totalForms = document.querySelector('#id_photos-TOTAL_FORMS');
+            const maxForms = parseInt(document.querySelector('#id_photos-MAX_NUM_FORMS').value);
+
+            // Trouver le formulaire vide (template) généré par Django (il est le dernier enfant avant l'hr si extra=1)
+            let emptyFormEl = formContainer.lastElementChild.previousElementSibling;
+            if (emptyFormEl.classList.contains('new-photo')) {
+                // Pour utiliser la méthode 'empty_form' du formset (plus robuste en production),
+                // il faudrait idéalement le générer dans la vue. Ici, nous allons le cloner
+                // et le masquer car Django l'a rendu.
+                emptyFormEl.style.display = 'none'; // Le masque pour l'utiliser comme template
+            }
+
+            addButton.addEventListener('click', function() {
+                if (parseInt(totalForms.value) >= maxForms) {
+                    alert(`Limite de ${maxForms} photos atteinte.`);
+                    return;
+                }
+
+                const currentFormCount = parseInt(totalForms.value);
+
+                // Cloner le formulaire vide (template)
+                let newForm = emptyFormEl.cloneNode(true);
+                newForm.style.display = 'flex';
+                newForm.id = `photo-photos-${currentFormCount}`;
+
+                // Mettre à jour les attributs `name` et `id` pour la nouvelle indexation
+                newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, currentFormCount);
+
+                // Réinitialiser les valeurs des champs dupliqués
+                newForm.querySelectorAll('[name]').forEach(el => {
+                    if (el.type === 'text' || el.tagName === 'TEXTAREA' || el.type === 'file') {
+                        el.value = '';
+                    } else if (el.type === 'checkbox') {
+                         el.checked = false;
+                    }
+                });
+
+                // Supprimer les éléments spécifiques à un formulaire existant (image actuelle, champ DELETE)
+                const existingImageDiv = newForm.querySelector('.current-image');
+                if (existingImageDiv) {
+                    existingImageDiv.remove();
+                }
+                const deleteCheckboxDiv = newForm.querySelector('.delete-checkbox');
+                if (deleteCheckboxDiv) {
+                    deleteCheckboxDiv.remove();
+                }
+
+                // Ajouter le nouveau formulaire et un séparateur
+                formContainer.appendChild(newForm);
+                formContainer.appendChild(document.createElement('hr'));
+
+                // Mettre à jour le TOTAL_FORMS
+                totalForms.value = currentFormCount + 1;
+            });
+        });
+    </script>
+
+    <style>
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .checkbox-group { display: flex; align-items: center; margin-bottom: 15px; }
+        .btn-submit { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 15px; }
+        .photo-item {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .photo-fields { flex-grow: 1; margin-left: 15px; }
+        .btn-add { background-color: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+{% endblock content %}

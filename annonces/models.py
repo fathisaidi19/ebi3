@@ -1,182 +1,119 @@
 # annonces/models.py
-
 from django.db import models
-from django.conf import settings
-from django.db.models import UniqueConstraint, Q
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+
+# Assumant que ces modèles existent
+from transporteurs.models import TransporteurProfile
+from stockages.models import LieuStockageProfile
+
+User = get_user_model()
 
 
-# --- MODÈLE 1 : CATÉGORIE ---
-# Utilisé pour le filtrage et l'organisation des annonces.
 class Categorie(models.Model):
-    """
-    Modèle pour gérer les catégories et sous-catégories (arborescence).
-    """
-    nom = models.CharField(max_length=100, unique=True, verbose_name="Nom de la Catégorie")
-    parent = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='sous_categories',
-        verbose_name="Catégorie Parente"
-    )
+    nom = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
 
     class Meta:
-        verbose_name = "Catégorie"
         verbose_name_plural = "Catégories"
 
     def __str__(self):
         return self.nom
 
 
-# --- MODÈLES DE SERVICES LOGISTIQUES (Placeholders) ---
-# Ces modèles représentent les entités auxquelles l'utilisateur peut faire appel (Choix 2 et 3)
-# Ils seront liés à des profils utilisateurs dans une phase ultérieure.
-
-class Transporteur(models.Model):
-    """
-    Représente une entreprise ou un individu capable d'assurer le transport.
-    """
-    nom_entreprise = models.CharField(max_length=255, unique=True)
-    description = models.TextField(blank=True)
-
-    # TODO: Ajouter une ForeignKey vers un modèle 'Profile' pour le lien utilisateur/notification.
-
-    class Meta:
-        verbose_name = "Transporteur"
-        verbose_name_plural = "Transporteurs"
-
-    def __str__(self):
-        return self.nom_entreprise
-
-
-class LieuStockage(models.Model):
-    """
-    Représente un lieu de stockage (entrepôt, etc.).
-    """
-    nom_lieu = models.CharField(max_length=255, unique=True)
-    adresse = models.CharField(max_length=255)
-    ville = models.CharField(max_length=100)
-    pays = models.CharField(max_length=100)
-
-    # TODO: Ajouter une ForeignKey vers un modèle 'Profile' pour le lien utilisateur/notification.
-
-    class Meta:
-        verbose_name = "Lieu de Stockage"
-        verbose_name_plural = "Lieux de Stockage"
-
-    def __str__(self):
-        return f"{self.nom_lieu} ({self.ville})"
-
-
-# --- MODÈLE 2 : ANNONCE ---
-
 class Annonce(models.Model):
-    # -- Propriétaire de l'Annonce (Dépositaire)
-    depositaire = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='annonces_deposees'
-    )
+    # Choix pour l'état du produit
+    ETAT_NEUF = 'NEUF'
+    ETAT_OCCASION = 'OCCASION'
+    ETAT_ABIME = 'ABIME'
+    ETAT_CHOICES = [
+        (ETAT_NEUF, 'Neuf'),
+        (ETAT_OCCASION, 'Occasion'),
+        (ETAT_ABIME, 'Abimé / Endommagé'),
+    ]
 
-    # -- Champs Obligatoires
+    # Choix pour la méthode de livraison
+    LIVRAISON_DEPOS = '1'
+    LIVRAISON_TRANSPORT = '2'
+    LIVRAISON_STOCKAGE_TRANSPORT = '3'
+    LIVRAISON_CHOICES = [
+        (LIVRAISON_DEPOS, '1. Dépositaire s\'occupe du transport'),
+        (LIVRAISON_TRANSPORT, '2. Transporteur sélectionné'),
+        (LIVRAISON_STOCKAGE_TRANSPORT, '3. Stockage + Transporteur sélectionné'),
+    ]
+
+    # Informations de base
     titre = models.CharField(max_length=255)
     description = models.TextField()
     prix = models.DecimalField(max_digits=10, decimal_places=2)
-    categorie = models.ForeignKey(Categorie, on_delete=models.SET_NULL, null=True)
+    categorie = models.ForeignKey(Categorie, related_name='annonces', on_delete=models.SET_NULL, null=True)
+    etat = models.CharField(max_length=10, choices=ETAT_CHOICES, default=ETAT_OCCASION)
 
-    # État (Condition) Choices
-    ETAT_CHOICES = [
-        ('NEUF', 'Neuf'),
-        ('COMME_NEUF', 'Utilisé mais comme neuf'),
-        ('UTILISE', 'Utilisé'),
-    ]
-    etat = models.CharField(max_length=20, choices=ETAT_CHOICES, default='UTILISE')
+    # Géolocalisation
+    pays_depart = models.CharField(max_length=100)
+    ville_depart = models.CharField(max_length=100)
+    pays_arrivee = models.CharField(max_length=100)
+    ville_arrivee = models.CharField(max_length=100)
+    date_livraison_estimee = models.DateField(null=True, blank=True)
 
-    # -- Localisation (Itinéraire)
-    pays_depart = models.CharField(max_length=100, verbose_name="Pays de Départ (A)")
-    ville_depart = models.CharField(max_length=100, verbose_name="Ville de Départ (A)")
-    pays_arrivee = models.CharField(max_length=100, verbose_name="Pays d'Arrivée (B)")
-    ville_arrivee = models.CharField(max_length=100, verbose_name="Ville d'Arrivée (B)")
-    date_livraison_estimee = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Date de livraison estimée"
-    )
+    # Logistique
+    methode_livraison = models.CharField(max_length=1, choices=LIVRAISON_CHOICES, default=LIVRAISON_DEPOS)
+    transporteur_choisi = models.ForeignKey(TransporteurProfile, related_name='annonces_assignees',
+                                            on_delete=models.SET_NULL, null=True, blank=True)
+    lieu_stockage_choisi = models.ForeignKey(LieuStockageProfile, related_name='annonces_stockees',
+                                             on_delete=models.SET_NULL, null=True, blank=True)
 
-    # -- Méthode de Livraison
-    LIVRAISON_CHOICES = [
-        ('1', 'Dépositaire s\'occupe du transport'),
-        ('2', 'Utilisation d\'un Transporteur (Choix dans la liste)'),
-        ('3', 'Utilisation d\'un Lieu de Stockage + Transporteur'),
-    ]
-    methode_livraison = models.CharField(
-        max_length=1,
-        choices=LIVRAISON_CHOICES,
-        default='1',
-        verbose_name="Méthode Logistique"
-    )
-
-    # -- Liens aux Services Choisi (Uniquement si methode_livraison est 2 ou 3)
-    transporteur_choisi = models.ForeignKey(
-        Transporteur,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
-    lieu_stockage_choisi = models.ForeignKey(
-        LieuStockage,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
-
-    # -- Paiement (Flag pour les formules 1 et 2 nécessitant un paiement)
-    paiement_requis = models.BooleanField(
-        default=False,
-        verbose_name="Paiement requis pour la logistique"
-    )
-
-    # -- Dates
+    # Gestion
+    depositaire = models.ForeignKey(User, related_name='mes_annonces', on_delete=models.CASCADE)
     date_creation = models.DateTimeField(auto_now_add=True)
     date_mise_a_jour = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    # Options de paiement
+    paiement_requis = models.BooleanField(default=True, verbose_name="Paiement requis à l'avance")
 
     class Meta:
+        ordering = ('-date_creation',)
         verbose_name = "Annonce"
         verbose_name_plural = "Annonces"
 
     def __str__(self):
-        return f"Annonce #{self.id}: {self.titre}"
+        return self.titre
+
+    def get_absolute_url(self):
+        return reverse('annonce_detail', kwargs={'pk': self.pk})
+
+    def get_main_photo(self):
+        """ Récupère la première photo (marquée comme principale ou la première téléchargée). """
+        return self.photos.first()
 
 
-# --- MODÈLE 3 : PHOTO/VIDÉO DE L'ANNONCE ---
-# Gère le contenu multimédia (1 obligatoire, N optionnels)
-
+# NOUVEAU MODÈLE POUR LES PHOTOS
 class PhotoAnnonce(models.Model):
-    """
-    Modèle pour gérer les photos associées à une annonce.
-    """
-    annonce = models.ForeignKey(Annonce, on_delete=models.CASCADE, related_name='photos')
-    # Utilisez FileField si vous voulez aussi accepter des vidéos.
-    image = models.ImageField(upload_to='annonces/images/', verbose_name="Fichier Média")
-    is_main = models.BooleanField(default=False, verbose_name="Photo Principale (Obligatoire)")
-    description = models.CharField(max_length=255, blank=True)
+    annonce = models.ForeignKey(
+        Annonce,
+        related_name='photos',
+        on_delete=models.CASCADE
+    )
+    image = models.ImageField(
+        upload_to='annonces_photos/',
+        verbose_name="Fichier Image"
+    )
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Description de l'image (Optionnel)"
+    )
+    is_main = models.BooleanField(
+        default=False,
+        verbose_name="Photo principale"
+    )
+    date_upload = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Photo de l'Annonce"
-        verbose_name_plural = "Photos des Annonces"
-        # Contrainte pour s'assurer qu'une seule photo est marquée comme "Principale" (obligatoire)
-        constraints = [
-            # La contrainte Q(is_main=True) n'est pas supportée pour garantir qu'une seule photo
-            # soit marquée 'is_main=True' par annonce, mais elle garantit la clé unique
-            # si l'on tente d'insérer plusieurs fois la même annonce avec is_main=True.
-            UniqueConstraint(fields=['annonce'], condition=Q(is_main=True), name='unique_main_photo_par_annonce')
-        ]
+        ordering = ('-is_main', 'date_upload')  # La photo principale est toujours en premier
+        verbose_name = "Photo d'Annonce"
+        verbose_name_plural = "Photos d'Annonce"
 
     def __str__(self):
-        return f"Média pour {self.annonce.titre}"
-
-
-from django.db import models
-
-# Create your models here.
+        return f"Photo pour {self.annonce.titre} ({self.pk})"

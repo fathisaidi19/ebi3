@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Annonces | {{ block.super }}{% endblock %}
+
+{% block content %}
+
+    <header>
+        <h1>Liste des Annonces Disponibles</h1>
+        <p>Découvrez les colis, les transporteurs ou les lieux de stockage.</p>
+    </header>
+
+    <section id="recherche-avancee">
+        <h2>Recherche Avancée & Filtrage</h2>
+        <form method="GET" action="{% url 'annonce_list' %}">
+            
+            <fieldset>
+                <legend>Filtre par Itinéraire</legend>
+                
+                <label for="ville_depart">Ville de Départ (A):</label>
+                <input type="text" id="ville_depart" name="ville_depart" placeholder="Ex: Paris" value="{{ current_query.ville_depart|default:'' }}">
+                
+                <label for="ville_arrivee">Ville d'Arrivée (B):</label>
+                <input type="text" id="ville_arrivee" name="ville_arrivee" placeholder="Ex: Casablanca" value="{{ current_query.ville_arrivee|default:'' }}">
+
+                <label for="q">Mots-clés (Titre/Description):</label>
+                <input type="search" id="q" name="q" placeholder="Ex: Smartphone, Vêtements" value="{{ current_query.q|default:'' }}">
+            </fieldset>
+
+            <fieldset>
+                <legend>Filtres Détaillés</legend>
+
+                <label for="categorie">Catégorie:</label>
+                <select id="categorie" name="categorie">
+                    <option value="">Toutes les Catégories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if current_query.categorie|slugify == cat.id|slugify %}selected{% endif %}>{{ cat.nom }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="etat">État du Colis:</label>
+                <select id="etat" name="etat">
+                    <option value="">Tous les États</option>
+                    {% for value, label in etats %}
+                        <option value="{{ value }}" {% if current_query.etat == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                
+                <label for="date_livraison">Date de Livraison (Max):</label>
+                <input type="date" id="date_livraison" name="date_livraison" value="{{ current_query.date_livraison|default:'' }}">
+
+                <label for="methode_logistique">Méthode Logistique:</label>
+                <select id="methode_logistique" name="methode_logistique">
+                    <option value="">Toutes les Méthodes</option>
+                    {% for value, label in methodes_livraison %}
+                        <option value="{{ value }}" {% if current_query.methode_logistique == value %}selected{% endif %}>{{ label }} ({{ value }})</option>
+                    {% endfor %}
+                </select>
+
+            </fieldset>
+
+            <button type="submit">🔍 Rechercher & Filtrer</button>
+            <a href="{% url 'annonce_list' %}">Réinitialiser les Filtres</a>
+        </form>
+    </section>
+
+    <section id="liste-annonces">
+        <h2>Résultats ({{ page_obj.paginator.count|default:0 }})</h2>
+        
+        {% if annonces %}
+            {% for annonce in annonces %}
+                <article class="annonce-card">
+                    {% with main_photo=annonce.photos.filter(is_main=True).first %}
+                        {% if main_photo and main_photo.image %}
+                            <img src="{{ main_photo.image.url }}" alt="Photo principale de {{ annonce.titre }}">
+                        {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" alt="Pas d'image" style="max-width: 100px;">
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <div class="annonce-info">
+                        <h3><a href="{% url 'annonce_detail' pk=annonce.pk %}">{{ annonce.titre }}</a> <small>({{ annonce.categorie.nom|default:"Non classé" }})</small></h3>
+                        <p><strong>Prix:</strong> {{ annonce.prix }} €</p>
+                        <p><strong>Itinéraire:</strong> {{ annonce.ville_depart }} → {{ annonce.ville_arrivee }}</p>
+                        <p><strong>Livraison Estimée:</strong> {{ annonce.date_livraison_estimee|default:'Non spécifiée' }}</p>
+                    </div>
+                </article>
+            {% endfor %}
+
+            {% if is_paginated %}
+                <div class="pagination">
+                    </div>
+            {% endif %}
+
+        {% else %}
+            <p>Aucune annonce ne correspond à vos critères de recherche ou de filtrage.</p>
+        {% endif %}
+
+    </section>
+
+{% endblock content %}

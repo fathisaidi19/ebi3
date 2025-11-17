@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Boîte de Réception | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <h1>📮 Vos Conversations ({{ conversations|length }})</h1>
+    
+    {% if non_lus_count > 0 %}
+        <p class="alert alert-info">Vous avez **{{ non_lus_count }}** message(s) non lu(s).</p>
+    {% endif %}
+
+    <div class="conversation-list">
+        {% for conv in conversations %}
+            {% with autre_participant=conv.participants.exclude(id=user.id).first %}
+            <a href="{% url 'conversation_detail' pk=conv.pk %}" class="conversation-card">
+                <div class="conv-header">
+                    {% if autre_participant %}
+                        <span class="participant-name">
+                            Conversation avec **{{ autre_participant.username }}**
+                        </span>
+                    {% else %}
+                        <span class="participant-name">Conversation sans destinataire</span>
+                    {% endif %}
+                    <span class="conv-time">
+                        {{ conv.derniere_activite|timesince }}
+                    </span>
+                </div>
+                
+                {% if conv.annonce %}
+                    <p class="conv-annonce">À propos de : **{{ conv.annonce.titre|truncatewords:5 }}**</p>
+                {% endif %}
+                
+                <p class="conv-snippet">
+                    {% comment %} Trouver le dernier message pour l'afficher {% endcomment %}
+                    {% with dernier_message=conv.messages.last %}
+                        {% if dernier_message %}
+                            **{% if dernier_message.expediteur == user %}Vous{% else %}{{ dernier_message.expediteur.username }}{% endif %}:** {{ dernier_message.contenu|truncatechars:50 }}
+                        {% else %}
+                            Démarrez la conversation.
+                        {% endif %}
+                    {% endwith %}
+                </p>
+            </a>
+            {% endwith %}
+        {% empty %}
+            <p>Vous n'avez aucune conversation en cours.</p>
+        {% endfor %}
+    </div>
+    
+    <style>
+        .conversation-list { display: flex; flex-direction: column; gap: 10px; }
+        .conversation-card { 
+            display: block; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            color: #333; 
+            transition: background-color 0.2s;
+        }
+        .conversation-card:hover { background-color: #f0f0f0; }
+        .conv-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; }
+        .conv-time { font-weight: normal; font-size: 0.8em; color: #666; }
+        .conv-annonce { font-size: 0.9em; color: #007bff; margin-top: 5px; margin-bottom: 5px; }
+        .conv-snippet { font-size: 0.9em; color: #666; }
+        .alert-info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 10px; border-radius: 4px; }
+    </style>
+{% endblock content %}

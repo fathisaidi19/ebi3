@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load django_widget_tweaks %}
+
+{% block title %}Conversation | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="message-container">
+        <h1>Conversation avec {% if autre_participant %}{{ autre_participant.username }}{% else %}Utilisateur Inconnu{% endif %}</h1>
+        
+        {% if conversation.annonce %}
+            <p class="conv-annonce-ref">
+                À propos de l'annonce : 
+                <a href="{% url 'annonce_detail' pk=conversation.annonce.pk %}">**{{ conversation.annonce.titre }}**</a>
+            </p>
+        {% endif %}
+        
+        <div class="message-history" id="message-history">
+            {% for message in conversation.messages.all %}
+                <div class="message-bubble {% if message.expediteur == user %}self{% else %}other{% endif %}">
+                    <p class="message-content">{{ message.contenu }}</p>
+                    <span class="message-time">
+                        {{ message.date_envoi|date:"H:i" }} 
+                        {% if message.expediteur == user and message.est_lu %}✅{% endif %}
+                    </span>
+                </div>
+            {% empty %}
+                <p class="no-messages">Aucun message pour le moment. Envoyez le premier !</p>
+            {% endfor %}
+        </div>
+        
+        <form method="post" class="message-form">
+            {% csrf_token %}
+            {{ form.contenu|add_class:"form-control message-input" }}
+            <button type="submit" class="btn-send">Envoyer</button>
+        </form>
+    </div>
+    
+    <script>
+        // Fait défiler automatiquement vers le bas pour voir le dernier message
+        document.addEventListener('DOMContentLoaded', function() {
+            const history = document.getElementById('message-history');
+            history.scrollTop = history.scrollHeight;
+        });
+    </script>
+
+    <style>
+        .message-container { max-width: 800px; margin: 0 auto; padding-top: 20px; }
+        .conv-annonce-ref { margin-bottom: 20px; font-style: italic; }
+        .message-history { 
+            height: 400px; 
+            overflow-y: scroll; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            background-color: #f9f9f9;
+        }
+        .message-bubble { 
+            padding: 8px 12px; 
+            margin-bottom: 10px; 
+            border-radius: 15px; 
+            max-width: 70%; 
+            word-wrap: break-word; 
+            position: relative;
+        }
+        .self { 
+            background-color: #dcf8c6; 
+            align-self: flex-end; 
+            margin-left: auto;
+        }
+        .other { 
+            background-color: #ffffff; 
+            border: 1px solid #eee;
+        }
+        .message-content { margin: 0; }
+        .message-time { 
+            display: block; 
+            font-size: 0.7em; 
+            color: #666; 
+            text-align: right; 
+            margin-top: 3px;
+        }
+        .message-form { display: flex; gap: 10px; }
+        .message-input { flex-grow: 1; resize: none; }
+        .btn-send { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .no-messages { text-align: center; color: #999; margin-top: 50px; }
+    </style>
+{% endblock content %}

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Déposer une Annonce | ebi3</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
+        h1 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .helptext { font-size: 0.9em; color: #666; margin-top: 5px; }
+        .errorlist { color: red; list-style: none; padding: 0; margin-bottom: 10px; }
+        .submit-btn { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1.1em; margin-top: 20px; }
+        .inline-group { border: 1px solid #eee; padding: 10px; margin-top: 10px; border-radius: 4px; }
+        /* Styles pour masquer/afficher les champs logistiques */
+        .logistics-field { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Déposer une Nouvelle Annonce</h1>
+
+        {% if user.is_authenticated %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {{ form.non_field_errors }}
+
+                <fieldset>
+                    <legend>Informations de l'Annonce</legend>
+                    {% for field in form %}
+                        <div class="form-group
+                            {% if field.name == 'transporteur_choisi' or field.name == 'lieu_stockage_choisi' or field.name == 'paiement_requis' %}
+                                logistics-field
+                            {% endif %}"
+                             id="field-{{ field.name }}">
+
+                            {{ field.errors }}
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<small class="helptext">{{ field.help_text }}</small>{% endif %}
+                        </div>
+                    {% endfor %}
+                </fieldset>
+
+                <fieldset>
+                    <legend>Photos/Vidéos (Une Obligatoire, Max 5)</legend>
+
+                    {{ formset.management_form }}
+
+                    {% for photo_form in formset %}
+                        <div class="inline-group">
+                            {% for field in photo_form %}
+                                {% if field.is_hidden %}
+                                    {{ field }}
+                                {% else %}
+                                    <div class="form-group">
+                                        {{ field.errors }}
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    {% if formset.non_form_errors %}
+                        <div class="errorlist">{{ formset.non_form_errors }}</div>
+                    {% endif %}
+                </fieldset>
+
+                <button type="submit" class="submit-btn">Publier l'Annonce</button>
+            </form>
+        {% else %}
+            <p>Vous devez être connecté pour déposer une annonce. <a href="/login/">Connectez-vous ici</a>.</p>
+        {% endif %}
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const methodeLivraisonSelect = document.getElementById('id_methode_livraison');
+            const transporteurField = document.getElementById('field-transporteur_choisi');
+            const lieuStockageField = document.getElementById('field-lieu_stockage_choisi');
+            const paiementRequisField = document.getElementById('field-paiement_requis');
+
+            function toggleLogisticsFields(selectedValue) {
+                // Masquer tout par défaut
+                transporteurField.style.display = 'none';
+                lieuStockageField.style.display = 'none';
+                paiementRequisField.style.display = 'none';
+
+                // Afficher les champs pertinents
+                if (selectedValue === '2') {
+                    // Choix 2: Utilisation d'un Transporteur
+                    transporteurField.style.display = 'block';
+                    paiementRequisField.style.display = 'block';
+                } else if (selectedValue === '3') {
+                    // Choix 3: Utilisation d'un Lieu de Stockage + Transporteur
+                    transporteurField.style.display = 'block';
+                    lieuStockageField.style.display = 'block';
+                    paiementRequisField.style.display = 'block';
+                } else if (selectedValue === '1') {
+                    // Choix 1: Dépositaire s'occupe du transport (Affiche le paiement car c'est un choix sur la formule)
+                    paiementRequisField.style.display = 'block';
+                }
+            }
+
+            // Écouter le changement sur le champ de méthode de livraison
+            if (methodeLivraisonSelect) {
+                methodeLivraisonSelect.addEventListener('change', function() {
+                    toggleLogisticsFields(this.value);
+                });
+
+                // Exécuter au chargement pour afficher l'état initial
+                toggleLogisticsFields(methodeLivraisonSelect.value);
+            }
+        });
+    </script>
+
+</body>
+</html>

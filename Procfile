@@ -1,1 +1,1 @@
-web: gunicorn ebi3.wsgi:application --log-file -
+web: gunicorn ebi3.wsgi:application --bind 0.0.0.0:$PORT
