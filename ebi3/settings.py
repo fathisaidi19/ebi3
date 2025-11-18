@@ -25,7 +25,7 @@ SECRET_KEY = env("SECRET_KEY", default='TEMPORARY_SECRET_KEY_FOR_BUILD')
 DEBUG = env("DEBUG")
 
 # ⚠️ GESTION DES HÔTES AUTORISÉS (CRITIQUE POUR LA PROD)
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '::1']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['.onrender.com', 'localhost'])
 
 # Configuration spécifique pour Render en mode production (DEBUG=False)
 if not DEBUG:
