@@ -4,47 +4,37 @@ FROM python:3.12-slim
 # ===============================================
 # 1. Configuration de l'environnement
 # ===============================================
-
-# Variables d'environnement pour Python
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+# Remarque : La variable DATABASE_URL n'est PAS définie ici,
+# elle doit être fournie par Render (External Database URL)
+# dans les variables d'environnement du service web.
 
-# Définir le répertoire de travail dans le conteneur.
-# Toutes les commandes suivantes seront exécutées à partir de ce chemin.
+# Définir le répertoire de travail
 WORKDIR /usr/src/app
-
-# Variable d'environnement pour la base de données.
-# Nous utilisons une URL SQLite factice ici pour permettre à Django de charger
-# les paramètres (settings.py) sans base de données réelle pendant le build.
-ENV DATABASE_URL="sqlite:///temp.db"
 
 # ===============================================
 # 2. Installation des dépendances
 # ===============================================
-
-# Copier uniquement le fichier de dépendances pour tirer parti du cache Docker
 COPY requirements.txt .
-
-# Mettre à jour pip et installer toutes les dépendances
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ===============================================
 # 3. Copie du code et Préparation
 # ===============================================
-
-# Copier le reste du code source de l'application (y compris manage.py)
-# Le point source est votre répertoire local (context), le point destination est le WORKDIR (/usr/src/app)
 COPY . .
 
-# Collecter les fichiers statiques (étape essentielle pour WhiteNoise et les déploiements)
-# Cette étape est désormais possible car manage.py est présent dans le WORKDIR.
+# 🛑 NOUVEAU : Exécuter les migrations.
+# C'est l'étape qui était manquante et causait l'erreur 500.
+# Elle utilise la DATABASE_URL fournie par Render.
+RUN python manage.py migrate --noinput
+
+# Collecter les fichiers statiques
 RUN python manage.py collectstatic --noinput
 
 # ===============================================
 # 4. Commande de lancement du serveur
 # ===============================================
-
-# La commande finale pour exécuter Gunicorn, en utilisant le module WSGI de votre projet.
-# Remplacez 'ebi3.wsgi:application' par le chemin réel si différent (par exemple, mon_projet.wsgi:application).
-CMD gunicorn ebi3.wsgi:application --bind 0.0.0.0:10000 --workers 2
+# Lancer Gunicorn pour servir l'application
+CMD gunicorn ebi3.wsgi:application --bind 0.0.0.0:$PORT --workers 2
